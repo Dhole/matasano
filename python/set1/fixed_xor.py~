@@ -1,0 +1,9 @@
+#! /usr/bin/env python3
+
+import sys
+
+def xor(a, b):
+    x = b''
+    for n in xrange(len(a)):
+        x += a ^ b
+    return x

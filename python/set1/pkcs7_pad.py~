@@ -1,0 +1,9 @@
+#! /usr/bin/env python3
+
+import sys
+
+def padding(msg, blk_size):
+    pad_size = msg % blk_size
+    if pad_size == 0:
+        pad_size = blk_size
+    return msg + bytes(pad_size) * pad_size
