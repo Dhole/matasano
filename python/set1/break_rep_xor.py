@@ -51,7 +51,7 @@ def getScore(msg):
 def getBestScore(msg):
     scores = {}
     #print(">>", msg)
-    for n in range(128):        
+    for n in range(128):
         xored = xor(msg, (chr(n) * len(msg)).encode())
         try:
             s = getScore(xored.decode('utf-8'))
@@ -90,7 +90,7 @@ with open (sys.argv[1], 'r') as f:
             dist += ham_dist(first, second)
         dist = dist / (avg_n * ks)
         dists[ks] = dist
-        #print("mean: ", dist)
+        print("mean: ", dist)
     #print(dists)
     sorted_dists = sorted(dists.items(), key=operator.itemgetter(1))
     #print(sorted_dists)
@@ -123,4 +123,4 @@ print("KEY:", min_k)
 #min_k = "Terminator X: Bring the noise"
 print(rep_xor(data, min_k).decode('utf-8'))
 
-                
+

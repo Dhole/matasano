@@ -68,3 +68,22 @@ func ComputeScore(eng_freq map[byte]float64, hist []float64) (res float64) {
 	}
 	return res / 2
 }
+
+func BestByteXored(input []byte) (k byte) {
+
+	min_score := 10.0
+	min_key := make([]byte, 1)
+	key := make([]byte, 1)
+
+	for i := 0x00; i < 0x100; i++ {
+		key[0] = byte(i)
+		xored := XorKey(input, key)
+		hist := ComputeHist(xored)
+		score := ComputeScore(Eng_freq, hist)
+		if score < min_score {
+			min_score = score
+			copy(min_key, key)
+		}
+	}
+	return min_key[0]
+}
