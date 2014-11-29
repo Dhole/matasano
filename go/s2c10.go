@@ -1,8 +1,7 @@
 package main
 
 import (
-	"./set1"
-	"crypto/aes"
+	"./set2"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -27,27 +26,7 @@ func main() {
 	key := []byte(key_str)
 	iv := make([]byte, 16)
 
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		log.Fatal(err)
-	}
+	plaintext := set2.AESCBCDecrypt(ciphertext, iv, key)
 
-	bs := block.BlockSize()
-	if len(ciphertext)%bs != 0 {
-		log.Fatal("Needs to be multiple of the blocksize! ",
-			len(ciphertext))
-	}
-
-	plaintext := make([]byte, len(ciphertext))
-	ptxt := plaintext
-	ctxt := ciphertext
-	last_cblk := iv
-	for len(ctxt) > 0 {
-		block.Decrypt(ptxt[:bs], ctxt[:bs])
-		copy(ptxt[:bs], set1.XorKey(ptxt[:bs], last_cblk))
-		last_cblk = ctxt[:bs]
-		ptxt = ptxt[bs:]
-		ctxt = ctxt[bs:]
-	}
-	fmt.Println(string(plaintext))
+	fmt.Print(string(plaintext))
 }
