@@ -9,7 +9,10 @@ import (
 	//"time"
 	"../modes"
 	"../pkcs7"
+	"encoding/base64"
 )
+
+var oracle2Key []byte
 
 func RandSlice(dst []byte) {
 	for i := range dst {
@@ -64,6 +67,44 @@ func AESEncryptionOracle(src []byte) (dst []byte) {
 			encrypter = modes.NewCBCEncrypter(block, iv)
 		}
 	*/
+	encrypter.CryptBlocks(dst, dst)
+	return dst
+}
+
+func SetOracle2Key() {
+	oracle2Key = make([]byte, 16)
+	_, err := crand.Read(oracle2Key)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func AESEncryptionOracle2(src []byte) (dst []byte) {
+
+	secret_b64_str :=
+		`Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg
+aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq
+dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg
+YnkK`
+	secret, err := base64.StdEncoding.DecodeString(secret_b64_str)
+	if err != nil {
+		panic(err)
+	}
+
+	dst = make([]byte, len(src)+len(secret))
+	copy(dst, src)
+	copy(dst[len(src):], secret)
+	dst, err = pkcs7.Pad(dst, 16)
+	if err != nil {
+		panic(err)
+	}
+
+	block, err := aes.NewCipher(oracle2Key)
+	if err != nil {
+		panic(err)
+	}
+
+	encrypter := modes.NewECBEncrypter(block)
 	encrypter.CryptBlocks(dst, dst)
 	return dst
 }
