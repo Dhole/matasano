@@ -1,11 +1,74 @@
 package set2
 
 import (
-	"../set1"
+	//"../set1"
 	"crypto/aes"
-	"fmt"
+	"crypto/cipher"
+	crand "crypto/rand"
+	"math/rand"
+	//"time"
+	"../modes"
+	"../pkcs7"
 )
 
+func RandSlice(dst []byte) {
+	for i := range dst {
+		dst[i] = byte(rand.Intn(256))
+	}
+}
+
+func AESEncryptionOracle(src []byte) (dst []byte) {
+	key := make([]byte, 16)
+	_, err := crand.Read(key)
+	if err != nil {
+		panic(err)
+	}
+	iv := make([]byte, 16)
+	_, err = crand.Read(iv)
+	if err != nil {
+		panic(err)
+	}
+
+	//rand.Seed(time.Now().UnixNano())
+
+	before := make([]byte, 5+rand.Intn(6))
+	after := make([]byte, 5+rand.Intn(6))
+	RandSlice(before)
+	RandSlice(after)
+
+	dst = make([]byte, len(before)+len(src)+len(after))
+	copy(dst, before)
+	copy(dst[len(before):], src)
+	copy(dst[len(before)+len(src):], after)
+	dst, err = pkcs7.Pad(dst, 16)
+	if err != nil {
+		panic(err)
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
+
+	encrypter := func() cipher.BlockMode {
+		if rand.Intn(2) == 0 {
+			return modes.NewECBEncrypter(block)
+		} else {
+			return modes.NewCBCEncrypter(block, iv)
+		}
+	}()
+	/*
+		if rand.Intn(2) == 0 {
+			encrypter = modes.NewECBEncrypter(block)
+		} else {
+			encrypter = modes.NewCBCEncrypter(block, iv)
+		}
+	*/
+	encrypter.CryptBlocks(dst, dst)
+	return dst
+}
+
+/*
 func PKCS7Padding(blk []byte, blk_size int) (blk_pad []byte, err error) {
 	if len(blk) > blk_size {
 		return nil, fmt.Errorf("Block is larger than block size")
@@ -21,7 +84,8 @@ func PKCS7Padding(blk []byte, blk_size int) (blk_pad []byte, err error) {
 	}
 	return blk_pad, nil
 }
-
+*/
+/*
 func AESCBCDecrypt(ciphertext, iv, key []byte) (plaintext []byte) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -79,3 +143,4 @@ func AESCBCEncrypt(plaintext, iv, key []byte) (ciphertext []byte) {
 	}
 	return plaintext
 }
+*/

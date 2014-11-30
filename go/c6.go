@@ -11,7 +11,7 @@ import (
 
 func main() {
 
-	input_b64, err := ioutil.ReadFile("6.txt")
+	input_b64, err := ioutil.ReadFile("data/6.txt")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"./modes"
+	//"./set2"
 	"crypto/aes"
 	"encoding/base64"
 	"fmt"
@@ -9,8 +11,7 @@ import (
 )
 
 func main() {
-
-	input_b64, err := ioutil.ReadFile("7.txt")
+	input_b64, err := ioutil.ReadFile("data/10.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -25,25 +26,16 @@ func main() {
 
 	key_str := "YELLOW SUBMARINE"
 	key := []byte(key_str)
+	iv := make([]byte, 16)
 
+	//plaintext := set2.AESCBCDecrypt(ciphertext, iv, key)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	bs := block.BlockSize()
-	if len(ciphertext)%bs != 0 {
-		log.Fatal("Needs to be multiple of the blocksize! ",
-			len(ciphertext))
-	}
-
 	plaintext := make([]byte, len(ciphertext))
-	ptxt := plaintext
-	ctxt := ciphertext
-	for len(ctxt) > 0 {
-		block.Decrypt(ptxt[:bs], ctxt[:bs])
-		ptxt = ptxt[bs:]
-		ctxt = ctxt[bs:]
-	}
-	fmt.Println(string(plaintext))
+	cbc_dec := modes.NewCBCDecrypter(block, iv)
+	cbc_dec.CryptBlocks(plaintext, ciphertext)
+
+	fmt.Print(string(plaintext))
 }

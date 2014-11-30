@@ -51,7 +51,28 @@ func XorKey(a, b []byte) (x []byte) {
 	return x
 }
 
+func RepeatingXorKey(dst, src, key []byte) {
+	len_key := len(key)
+	if len_key > len(src) {
+		panic("set1: key is shorter than src")
+	}
+	for i, b := range src {
+		dst[i] = b ^ key[i%len_key]
+	}
+}
+
+func XorBytes(dst, a, b []byte) {
+	n := len(a)
+	if len(b) < n {
+		n = len(b)
+	}
+	for i := 0; i < n; i++ {
+		dst[i] = a[i] ^ b[i]
+	}
+}
+
 func ComputeHist(data []byte) (hist []float64) {
+	// !!! Only using lower case
 	hist = make([]float64, 0x100)
 	len_data := len(data)
 	for _, v := range data {
