@@ -10,6 +10,7 @@ import (
 	"../modes"
 	"../pkcs7"
 	"encoding/base64"
+	//"fmt"
 )
 
 var oracle2Key []byte
@@ -98,6 +99,7 @@ YnkK`
 	if err != nil {
 		panic(err)
 	}
+	//fmt.Println(dst)
 
 	block, err := aes.NewCipher(oracle2Key)
 	if err != nil {
