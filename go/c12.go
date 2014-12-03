@@ -10,7 +10,7 @@ import (
 
 type oracle func([]byte) []byte
 
-func FindOracleBlockSize(ora oracle) (bs int) {
+func FindOracleBlockSize(ora oracle) (bs, pad_size int) {
 	bs = 0
 	msg := bytes.Repeat([]byte{byte('A')}, 0)
 	out := ora(msg)
@@ -20,10 +20,11 @@ func FindOracleBlockSize(ora oracle) (bs int) {
 		out := ora(msg)
 		if len(out) > len_fst {
 			bs = len(out) - len_fst
+			pad_size = i
 			break
 		}
 	}
-	return bs
+	return bs, pad_size
 }
 
 func IsOracleECB(ora oracle, bs int) (is_ECB bool) {
@@ -37,13 +38,10 @@ func FindOracleBlock(ora oracle, prev []byte, bs int) (blk []byte) {
 	blk = make([]byte, bs)
 	fill := bytes.Repeat([]byte{byte('A')}, bs*2+len_prev)
 	copy(fill[bs-1:], prev)
-	//fmt.Println(fill)
 	for i := 1; i < bs+1; i++ {
-		//fmt.Println(i, ":")
-		win1 := fill[i-1 : bs-1+i]
+		win1 := fill[i-1 : bs-1]
 		win2 := fill[i-1 : len_prev+bs-1+i]
-		//fmt.Println(win)
-		base := ora(win1[:bs-i])
+		base := ora(win1)
 		for j := 0; j < 256; j++ {
 			win2[len_prev+bs-1] = byte(j)
 			out := ora(win2)
@@ -54,38 +52,42 @@ func FindOracleBlock(ora oracle, prev []byte, bs int) (blk []byte) {
 			}
 		}
 	}
+	//fmt.Println("block:\n", blk)
 	return blk
 }
 
-func FindOracleClear(ora oracle, bs int) (clear []byte) {
-	len_clear := len(ora(make([]byte, 0)))
-	clear = make([]byte, len_clear)
-	n_blks := len(clear) / bs
+func FindOraclePlain(ora oracle, bs, pad_size int) (plain []byte) {
+	len_plain := len(ora(make([]byte, 0)))
+	plain = make([]byte, len_plain)
+	n_blks := len(plain) / bs
 	blk := make([]byte, bs)
 
 	blk = FindOracleBlock(ora, make([]byte, 0), bs)
-	copy(clear[:bs], blk)
+	copy(plain[:bs], blk)
 	//n_blks = 2
 	for i := 1; i < n_blks; i++ {
-		blk = FindOracleBlock(ora, clear[:bs*i], bs)
-		copy(clear[bs*i:bs*(i+1)], blk)
+		blk = FindOracleBlock(ora, plain[:bs*i], bs)
+		copy(plain[bs*i:], blk)
 	}
-	return clear
+	return plain[:len_plain-pad_size]
 }
 
 func main() {
 	set2.SetOracle2Key()
-	//input := make([]byte, 16*3)
-	//output := set2.AESEncryptionOracle2(input)
-	//fmt.Println(output)
-	bs := FindOracleBlockSize(set2.AESEncryptionOracle2)
+	/*
+		input := make([]byte, 0)
+		output := set2.AESEncryptionOracle2(input)
+		fmt.Println("output:\n", output)
+	*/
+	bs, pad_size := FindOracleBlockSize(set2.AESEncryptionOracle2)
+	fmt.Println("bs:", bs, "pad size:", pad_size)
 	if IsOracleECB(set2.AESEncryptionOracle2, bs) {
 		fmt.Println("It's ECB")
 	} else {
 		fmt.Println("It's not ECB")
 		return
 	}
-	blk := FindOracleClear(set2.AESEncryptionOracle2, bs)
+	blk := FindOraclePlain(set2.AESEncryptionOracle2, bs, pad_size)
 	fmt.Println(string(blk))
 	fmt.Println(blk)
 

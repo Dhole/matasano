@@ -10,7 +10,7 @@ import (
 	"../modes"
 	"../pkcs7"
 	"encoding/base64"
-	//"fmt"
+	"fmt"
 )
 
 var oracle2Key []byte
@@ -78,6 +78,7 @@ func SetOracle2Key() {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("key set")
 }
 
 func AESEncryptionOracle2(src []byte) (dst []byte) {
@@ -91,6 +92,7 @@ YnkK`
 	if err != nil {
 		panic(err)
 	}
+	//fmt.Println("secret:\n", secret)
 
 	dst = make([]byte, len(src)+len(secret))
 	copy(dst, src)
@@ -99,7 +101,11 @@ YnkK`
 	if err != nil {
 		panic(err)
 	}
-	//fmt.Println(dst)
+	/*
+		if len(src) == 128+16 {
+		}
+	*/
+	//fmt.Println("secret_padded:\n", dst)
 
 	block, err := aes.NewCipher(oracle2Key)
 	if err != nil {
