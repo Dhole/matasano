@@ -80,7 +80,7 @@ func main() {
 		fmt.Println("output:\n", output)
 	*/
 	bs, pad_size := FindOracleBlockSize(set2.AESEncryptionOracle2)
-	fmt.Println("bs:", bs, "pad size:", pad_size)
+	fmt.Println("bs:", bs, ",pad size:", pad_size)
 	if IsOracleECB(set2.AESEncryptionOracle2, bs) {
 		fmt.Println("It's ECB")
 	} else {
