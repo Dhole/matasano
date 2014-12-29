@@ -11,9 +11,15 @@ import (
 	"../pkcs7"
 	"encoding/base64"
 	"fmt"
+	"time"
 )
 
 var oracle2Key []byte
+var rndPrefix []byte
+
+func SetRndSeed() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 func RandSlice(dst []byte) {
 	for i := range dst {
@@ -32,8 +38,6 @@ func AESEncryptionOracle(src []byte) (dst []byte) {
 	if err != nil {
 		panic(err)
 	}
-
-	//rand.Seed(time.Now().UnixNano())
 
 	before := make([]byte, 5+rand.Intn(6))
 	after := make([]byte, 5+rand.Intn(6))
@@ -78,7 +82,7 @@ func SetOracle2Key() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("key set")
+	fmt.Println("Key set")
 }
 
 func AESEncryptionOracle2(src []byte) (dst []byte) {
@@ -106,6 +110,52 @@ YnkK`
 		}
 	*/
 	//fmt.Println("secret_padded:\n", dst)
+
+	block, err := aes.NewCipher(oracle2Key)
+	if err != nil {
+		panic(err)
+	}
+
+	encrypter := modes.NewECBEncrypter(block)
+	encrypter.CryptBlocks(dst, dst)
+	return dst
+}
+
+func SetOracle3RndPrefix() {
+	rndPrefix = make([]byte, rand.Intn(32))
+	_, err := crand.Read(rndPrefix)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Random prefix set, size: ", len(rndPrefix))
+}
+
+func AESEncryptionOracle3(src []byte) (dst []byte) {
+
+	secret_b64_str :=
+		`Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg
+aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq
+dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg
+YnkK`
+	secret, err := base64.StdEncoding.DecodeString(secret_b64_str)
+	if err != nil {
+		panic(err)
+	}
+	//fmt.Println("secret:\n", secret)
+
+	dst = make([]byte, len(rndPrefix)+len(src)+len(secret))
+	copy(dst, rndPrefix)
+	copy(dst[len(rndPrefix):], src)
+	copy(dst[len(src)+len(rndPrefix):], secret)
+	dst, err = pkcs7.Pad(dst, 16)
+	if err != nil {
+		panic(err)
+	}
+	/*
+		if len(src) == 128+16 {
+		}
+	*/
+	//fmt.Println("pref+src+secret+padded:\n", dst)
 
 	block, err := aes.NewCipher(oracle2Key)
 	if err != nil {
