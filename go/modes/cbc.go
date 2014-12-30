@@ -1,9 +1,15 @@
 package modes
 
 import (
-	"crypto/cipher"
 	"../set1"
+	"crypto/cipher"
 )
+
+func dup(p []byte) []byte {
+	q := make([]byte, len(p))
+	copy(q, p)
+	return q
+}
 
 // Heavily copied from src/pkg/crypto/cipher/cbc.go
 
@@ -11,15 +17,15 @@ type cbc struct {
 	b         cipher.Block
 	blockSize int
 	iv        []byte
-	tmp []byte
+	tmp       []byte
 }
 
 func newCBC(b cipher.Block, iv []byte) *cbc {
 	return &cbc{
 		b:         b,
 		blockSize: b.BlockSize(),
-		iv:        iv,
-		tmp: make([]byte, b.BlockSize()),
+		iv:        dup(iv),
+		tmp:       make([]byte, b.BlockSize()),
 	}
 }
 
@@ -45,7 +51,7 @@ func (x *cbcEncrypter) CryptBlocks(dst, src []byte) {
 	for len(src) > 0 {
 		set1.XorBytes(dst[:x.blockSize], src[:x.blockSize], iv)
 		x.b.Encrypt(dst[:x.blockSize], dst[:x.blockSize])
-		iv = dst[:x.blockSize] 
+		iv = dst[:x.blockSize]
 		src = src[x.blockSize:]
 		dst = dst[x.blockSize:]
 	}

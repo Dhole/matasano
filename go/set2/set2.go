@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	crand "crypto/rand"
 	"math/rand"
+	"strings"
 	//"time"
 	"../modes"
 	"../pkcs7"
@@ -16,6 +17,8 @@ import (
 
 var oracle2Key []byte
 var rndPrefix []byte
+var key []byte
+var iv []byte
 
 func SetRndSeed() {
 	rand.Seed(time.Now().UnixNano())
@@ -165,6 +168,57 @@ YnkK`
 	encrypter := modes.NewECBEncrypter(block)
 	encrypter.CryptBlocks(dst, dst)
 	return dst
+}
+
+func AESEncryptionOracle4(src []byte) (dst []byte) {
+	key = make([]byte, 16)
+	_, err := crand.Read(key)
+	if err != nil {
+		panic(err)
+	}
+	iv = make([]byte, 16)
+	_, err = crand.Read(iv)
+	if err != nil {
+		panic(err)
+	}
+
+	before_str := "comment1=cooking%20MCs;userdata="
+	after_str := ";comment2=%20like%20a%20pound%20of%20bacon"
+	before := []byte(before_str)
+	after := []byte(after_str)
+
+	dst = make([]byte, len(before)+len(src)+len(after))
+	copy(dst, before)
+	copy(dst[len(before):], src)
+	copy(dst[len(before)+len(src):], after)
+	dst, err = pkcs7.Pad(dst, 16)
+	if err != nil {
+		panic(err)
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
+
+	encrypter := modes.NewCBCEncrypter(block, iv)
+	encrypter.CryptBlocks(dst, dst)
+	return dst
+}
+
+func AESDecryptionOracle4(src []byte) (is_admin bool) {
+	dst := make([]byte, len(src))
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
+
+	encrypter := modes.NewCBCDecrypter(block, iv)
+	encrypter.CryptBlocks(dst, src)
+	dst, _ = pkcs7.Unpad(dst)
+	fmt.Println("Decription:")
+	fmt.Println(string(dst))
+	return strings.Contains(string(dst), ";admin=true;")
 }
 
 /*
