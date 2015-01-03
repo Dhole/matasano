@@ -31,6 +31,9 @@ func Unpad(buf []byte) (buf_unpadded []byte, err error) {
 	if n > len(buf) {
 		return nil, err
 	}
+	if n == 0 {
+		return nil, err
+	}
 	for i := len(buf) - n; i < len(buf); i++ {
 		if buf[i] != pad_byte {
 			return nil, err
