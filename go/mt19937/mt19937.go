@@ -1,20 +1,20 @@
 package mt19937
 
 type MT19937 struct {
-	index int
+	Index int
 	MT    []uint32
 }
 
 func New() *MT19937 {
 	res := &MT19937{
-		index: 0,
+		Index: 0,
 		MT:    make([]uint32, 624),
 	}
 	return res
 }
 
 func (m *MT19937) Init(seed uint32) {
-	m.index = 0
+	m.Index = 0
 	m.MT[0] = seed
 	for i := uint32(1); i < 624; i++ {
 		m.MT[i] = (0x6c078965*(m.MT[i-1]^(m.MT[i-1]>>30)) + i)
@@ -22,17 +22,17 @@ func (m *MT19937) Init(seed uint32) {
 }
 
 func (m *MT19937) ExtractNumber() uint32 {
-	if m.index == 0 {
+	if m.Index == 0 {
 		m.generateNumbers()
 	}
 
-	y := m.MT[m.index]
+	y := m.MT[m.Index]
 	y = y ^ (y >> 11)
 	y = y ^ ((y << 7) & 0x9d2c5680)
 	y = y ^ ((y << 15) & 0xefc60000)
 	y = y ^ (y >> 18)
 
-	m.index = (m.index + 1) % 264
+	m.Index = (m.Index + 1) % 624
 	return y
 }
 

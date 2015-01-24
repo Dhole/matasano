@@ -48,7 +48,7 @@ func crackSeed(val uint32) (seed uint32) {
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	initFakeTime(uint32(time.Now().UnixNano()))
+	initFakeTime(uint32(time.Now().Unix()))
 	val := genRandom()
 	fmt.Println("Random value:", val)
 	seed := crackSeed(val)
