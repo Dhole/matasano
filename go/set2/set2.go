@@ -2,6 +2,7 @@ package set2
 
 import (
 	//"../set1"
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	crand "crypto/rand"
@@ -171,6 +172,10 @@ YnkK`
 }
 
 func AESEncryptionOracle4(src []byte) (dst []byte) {
+	// Clean input
+	src = bytes.Replace(src, []byte(";"), []byte(""), -1)
+	src = bytes.Replace(src, []byte("="), []byte(""), -1)
+
 	key = make([]byte, 16)
 	_, err := crand.Read(key)
 	if err != nil {

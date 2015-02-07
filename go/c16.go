@@ -16,6 +16,8 @@ func main() {
 	goal := ";admin=true;"
 	mod := make([]byte, bs)
 	set1.XorBytes(mod, []byte(goal), []byte(after_str[:len(goal)]))
+	fmt.Println("Sent:")
+	fmt.Println(string(fill))
 
 	ciphtxt := set2.AESEncryptionOracle4(fill)
 
