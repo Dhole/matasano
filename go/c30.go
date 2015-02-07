@@ -1,7 +1,7 @@
 package main
 
 import (
-	"./sha1"
+	"./md4"
 	"bufio"
 	"fmt"
 	"hash"
@@ -14,7 +14,7 @@ import (
 var key []byte
 
 func genMac(msg []byte) (mac []byte) {
-	h := sha1.New()
+	h := md4.New()
 	h.Write(key)
 	h.Write(msg)
 	mac = h.Sum(nil)
@@ -22,7 +22,7 @@ func genMac(msg []byte) (mac []byte) {
 }
 
 func checkMac(msg, mac []byte) bool {
-	h := sha1.New()
+	h := md4.New()
 	h.Write(key)
 	h.Write(msg)
 	new_mac := h.Sum(nil)
@@ -40,21 +40,21 @@ func MDPad(len_msg int) (pad []byte) {
 	pad[0] = 0x80
 	len_msg *= 8 // length in bits
 	for i := uint(0); i < 8; i++ {
-		pad[i+uint(len_pad)-8] = byte(len_msg >> (64 - 8 - 8*i))
+		pad[i+uint(len_pad)-8] = byte(len_msg >> (8 * i))
 	}
 	//fmt.Println(pad_msg)
 	return pad
 }
 
-func newShaFromHash(sha1_sum []byte, len uint64) hash.Hash {
-	var new_h [5]uint32
-	for i := 0; i < 5; i++ {
+func newMd4FromHash(md4_sum []byte, len uint64) hash.Hash {
+	var new_s [4]uint32
+	for i := 0; i < 4; i++ {
 		for j := uint32(0); j < 4; j++ {
-			new_h[i] |= uint32(sha1_sum[i*4+int(j)]) << (8 * (3 - j))
+			new_s[i] |= uint32(md4_sum[i*4+int(j)]) << (8 * j)
 		}
 	}
-	//fmt.Println("New H:", new_h)
-	h := sha1.NewSpecialInit(new_h, len)
+	//fmt.Println("New S:", new_s)
+	h := md4.NewSpecialInit(new_s, len)
 	return h
 }
 
@@ -94,7 +94,7 @@ func main() {
 	for len_key = 0; len_key < max_len_key; len_key++ {
 		pad_cookie := append(cookie, MDPad(len(cookie)+len_key)...)
 		cookie2 = append(pad_cookie, custom...)
-		h := newShaFromHash(mac, uint64(len(pad_cookie)+len_key))
+		h := newMd4FromHash(mac, uint64(len(pad_cookie)+len_key))
 		h.Write(custom)
 		mac2 = h.Sum(nil)
 		if checkMac(cookie2, mac2) {
