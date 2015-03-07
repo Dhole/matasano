@@ -12,6 +12,27 @@ import (
 	"time"
 )
 
+/*
+UNFINISHED
+
+I didn't finish this challenge but here are some comments about it:
+First, special care must be taken to the concurrent http petitions. If they
+work with goroutines and there are too many, the results will be very
+unreliable! A small number of petitions should be made at the same time, so that
+the timing values are accurate (and the goroutines don't stay waiting for too
+long once they have received the http response). This is tricky.
+
+Secondly, regarding to finding the mac byte one at a time, the idea would be
+to do a number of petitions for every byte and take the timing results as
+gausian populations. The results from one byte will be a different population
+than the rest, this will correspond to the byte in the mac. To find the
+different population (same distribution but with different mean), a statistical
+test must be run. For example Mann-Whitney U test. When there are not enough
+samples to find a different populations, more timings must be obtained until
+a different population pops out.
+
+*/
+
 func main() {
 	msg := []byte(url.QueryEscape("The cake is a lie"))
 	//msg := []byte("HELLO")
