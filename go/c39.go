@@ -49,35 +49,84 @@ func invModBig(a, n *big.Int) *big.Int {
 	return t0
 }
 
-func main() {
-	bit_len := 8
-
-	p, err := crand.Prime(crand.Reader, bit_len)
-	if err != nil {
-		panic(err)
-	}
-
-	q, err := crand.Prime(crand.Reader, bit_len)
-	if err != nil {
-		panic(err)
-	}
-
-	var n big.Int
-	n.Mul(p, q)
+func genKeyPair(bit_len int) (e, d, n *big.Int) {
+	e, d, n = new(big.Int), new(big.Int), new(big.Int)
 
 	var et big.Int
-	et.Mul(big.NewInt(0).Sub(p, big.NewInt(1)),
-		big.NewInt(0).Sub(q, big.NewInt(1)))
+	e.SetInt64(3)
 
+	for {
+		p, err := crand.Prime(crand.Reader, bit_len)
+		if err != nil {
+			panic(err)
+		}
+
+		q, err := crand.Prime(crand.Reader, bit_len)
+		if err != nil {
+			panic(err)
+		}
+
+		if p.Cmp(q) == 0 {
+			continue
+		}
+
+		n.Mul(p, q)
+
+		et.Mul(new(big.Int).Sub(p, big.NewInt(1)),
+			new(big.Int).Sub(q, big.NewInt(1)))
+
+		if new(big.Int).Rem(&et, e).Cmp(big.NewInt(0)) != 0 {
+			fmt.Printf("p = %d, q = %d, et = %d\n", p, q, &et)
+			break
+		}
+	}
+
+	d = invModBig(e, &et)
+
+	return e, d, n
+}
+
+func crypt(m, e, n *big.Int) (c *big.Int) {
+	c = new(big.Int)
+	c.Exp(m, e, n)
+
+	return c
+}
+
+func encode(m string) (m0 *big.Int) {
+	m0 = new(big.Int)
+	m0.SetBytes([]byte(m))
+	return m0
+}
+
+func decode(m0 *big.Int) (m string) {
+	m = string(m0.Bytes()[:])
+	return m
+}
+
+func testInvModBig() {
 	e := big.NewInt(3)
-
-	fmt.Println("FIN", e)
-
 	primes := []int64{3, 5, 7, 11, 13, 17, 23}
 	for _, p := range primes {
-		fmt.Println("3,", p, invModBig(big.NewInt(3), big.NewInt(p)))
-		fmt.Println("3,", p, big.NewInt(0).ModInverse(big.NewInt(3), big.NewInt(p)))
+		fmt.Println("3,", p, invmod(3, int(p)))
+		fmt.Println("3,", p, invModBig(e, big.NewInt(p)))
+		fmt.Println("3,", p, new(big.Int).ModInverse(e, big.NewInt(p)))
 		fmt.Println("")
 	}
+	fmt.Println("17, 3120,", invmod(17, 3120))
+	fmt.Println("17, 3120,", invModBig(big.NewInt(17), big.NewInt(3120)))
+	fmt.Println("17, 3120,", new(big.Int).ModInverse(big.NewInt(17), big.NewInt(3120)))
+	fmt.Println("")
+}
+
+func main() {
+	e, d, n := genKeyPair(512)
+	fmt.Printf("e = %d, d = %d, n = %d\n", e, d, n)
+
+	m := "Welcome home"
+	m0 := encode(m)
+	c := crypt(m0, e, n)
+	m1 := decode(crypt(c, d, n))
+	fmt.Printf("m0 = %s, c = %d, m1 = %s\n", m, c, m1)
 
 }
