@@ -1,177 +1,15 @@
 package main
 
 import (
+	"./dsa"
 	"bytes"
-	crand "crypto/rand"
+	//crand "crypto/rand"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"hash"
+	//"hash"
 	"math/big"
 )
-
-type params struct {
-	hash    hash.Hash
-	p, q, g *big.Int
-}
-
-type key_pair struct {
-	x, y *big.Int
-}
-
-type signature struct {
-	r, s *big.Int
-}
-
-func parameter_gen(hash hash.Hash, L, N int) (*params, error) {
-	if N > hash.Size()*8 {
-		return nil, fmt.Errorf("N must be smaller or equal than " +
-			"the hash size")
-	}
-
-	q, err := crand.Prime(crand.Reader, N)
-	if err != nil {
-		panic(err)
-	}
-	//print_dec("q", q)
-
-	p := big.NewInt(0)
-	rnd_buf := make([]byte, (L-N)/8)
-	_, err = crand.Read(rnd_buf)
-	if err != nil {
-		panic(err)
-	}
-	r := big.NewInt(0).SetBytes(rnd_buf)
-	//r := crand.Int(crand.Reader, L-N)
-	// Make r even
-	r.SetBit(r, 0, 0)
-	//print_dec("r", r)
-	// p := r*q + 1, where r is random
-	p.Mul(r, q)
-	p.Add(p, big.NewInt(1))
-	//print_dec("r*q + 1", p)
-
-	// We keep adding 2*q to p until it's a prime
-	q2 := big.NewInt(0).Mul(big.NewInt(2), q)
-	for {
-		//print_dec("p1", p)
-		if p.ProbablyPrime(80) {
-			break
-		}
-		p.Add(p, q2)
-	}
-	//print_dec("p", p)
-
-	// g = h^((p − 1)/q) mod p
-	g := big.NewInt(0)
-	p1 := big.NewInt(0)
-	p1.Sub(p, big.NewInt(1))
-	p1.Div(p1, q)
-	// NOTE: The limit on h is only valid for N > 32
-	for h := int64(2); h < 4294967296; h++ {
-		if g.Exp(big.NewInt(h), p1, p).Cmp(big.NewInt(1)) != 0 {
-			break
-		}
-	}
-	//print_dec("g", g)
-
-	return &params{hash, p, q, g}, nil
-}
-
-func key_gen(par *params) key_pair {
-	x, err := crand.Int(crand.Reader, par.q)
-	if err != nil {
-		panic(err)
-	}
-	y := big.NewInt(0)
-	y.Exp(par.g, x, par.p)
-
-	return key_pair{x, y}
-}
-
-func sign(par *params, keys *key_pair, msg []byte) signature {
-	r := big.NewInt(0)
-	s := big.NewInt(0)
-	par.hash.Reset()
-	par.hash.Write(msg)
-	h_b := par.hash.Sum(nil)
-	h := big.NewInt(0).SetBytes(h_b)
-	for {
-		k, err := crand.Int(crand.Reader, par.q)
-		if err != nil {
-			panic(err)
-		}
-
-		r.Exp(par.g, k, par.p)
-		r.Mod(r, par.q)
-		if r.Cmp(big.NewInt(0)) == 0 {
-			continue
-		}
-		//print_dec("r", r)
-
-		k1 := big.NewInt(0).ModInverse(k, par.q)
-		s.Mul(keys.x, r)
-		s.Add(h, s)
-		s.Mul(k1, s)
-		s.Mod(s, par.q)
-		if s.Cmp(big.NewInt(0)) == 0 {
-			continue
-		}
-
-		r1 := big.NewInt(0).ModInverse(r, par.q)
-		x1 := x_from_k(r1, s, par.q, h, k)
-		print_dec("x1", x1)
-
-		break
-	}
-	return signature{r, s}
-}
-
-func verify(par *params, sig *signature, y *big.Int, msg []byte) bool {
-	if sig.r.Cmp(big.NewInt(0)) != 1 && sig.r.Cmp(par.q) != -1 {
-		return false
-	}
-	if sig.s.Cmp(big.NewInt(0)) != 1 && sig.s.Cmp(par.q) != -1 {
-		return false
-	}
-
-	w := big.NewInt(0)
-	u1 := big.NewInt(0)
-	u2 := big.NewInt(0)
-	v := big.NewInt(0)
-
-	par.hash.Reset()
-	par.hash.Write(msg)
-	h_b := par.hash.Sum(nil)
-	fmt.Printf("h = 0x%v\n", hex.EncodeToString(h_b))
-	h := big.NewInt(0).SetBytes(h_b)
-
-	w.ModInverse(sig.s, par.q)
-	print_dec("w", w)
-
-	u1.Mul(h, w)
-	u1.Mod(u1, par.q)
-	print_dec("u1", u1)
-
-	u2.Mul(sig.r, w)
-	u2.Mod(u2, par.q)
-	print_dec("u2", u2)
-
-	u1.Exp(par.g, u1, par.p)
-	u2.Exp(y, u2, par.p)
-
-	v.Mul(u1, u2)
-	v.Mod(v, par.p)
-	v.Mod(v, par.q)
-	print_dec("v", v)
-	print_dec("r", sig.r)
-	print_hex("r", sig.r)
-
-	if v.Cmp(sig.r) == 0 {
-		return true
-	}
-	return false
-}
 
 func print_hex(pre string, v *big.Int) {
 	fmt.Printf("%v = 0x%v\n", pre, hex.EncodeToString(v.Bytes()))
@@ -185,29 +23,29 @@ func main() {
 	// FIPS 186-3 specifies L and N length pairs of
 	// (1,024, 160), (2,048, 224), (2,048, 256), and (3,072, 256).
 	// dsa_params, err := parameter_gen(sha1.New(), 1024, 160)
-	dsa_params, err := parameter_gen(sha1.New(), 64, 16)
+	dsa_params, err := dsa.ParameterGen(sha1.New(), 64, 16)
 	//dsa_params, err := parameter_gen(sha1.New(), 1024, 160)
 	if err != nil {
 		panic(err)
 	}
-	print_dec("p", dsa_params.p)
-	print_dec("q", dsa_params.q)
-	print_dec("g", dsa_params.g)
-	dsa_keys := key_gen(dsa_params)
-	print_dec("x", dsa_keys.x)
-	print_dec("y", dsa_keys.y)
+	print_dec("p", dsa_params.P)
+	print_dec("q", dsa_params.Q)
+	print_dec("g", dsa_params.G)
+	dsa_keys := dsa.KeyGen(dsa_params)
+	print_dec("x", dsa_keys.X)
+	print_dec("y", dsa_keys.Y)
 
 	msg := "OLA K ASE"
 	msg_b := []byte(msg)
-	sig := sign(dsa_params, &dsa_keys, msg_b)
+	sig := dsa.Sign(dsa_params, &dsa_keys, msg_b)
 	fmt.Printf("msg = \"%v\"\n", msg)
-	print_dec("r", sig.r)
-	print_dec("s", sig.s)
-	ok := verify(dsa_params, &sig, dsa_keys.y, msg_b)
+	print_dec("r", sig.R)
+	print_dec("s", sig.S)
+	ok := dsa.Verify(dsa_params, &sig, dsa_keys.Y, msg_b)
 	fmt.Println("verify = ", ok)
 	fmt.Println("End")
 
-	test()
+	challenge()
 }
 
 func x_from_k(r1, s, q, h, k *big.Int) *big.Int {
@@ -221,7 +59,7 @@ func x_from_k(r1, s, q, h, k *big.Int) *big.Int {
 	return x1
 }
 
-func test() {
+func challenge() {
 	p_str :=
 		"800000000000000089e1855218a0e7dac38136ffafa72eda7859f2171e25e65eac698c1702578b07dc2a1076da241c76c62d374d8389ea5aeffd3226a0530cc565f3bf6b50929139ebeac04f48c3c84afb796d61e5a4f9a8fda812ab59494232c7d2b4deb50aa18ee9e132bfa85ac4374d7f9091abc3d015efc871a584471bb1"
 
@@ -262,9 +100,9 @@ func test() {
 	print_hex("s", s)
 	print_hex("r", r)
 
-	par := params{sha1.New(), p, q, g}
-	sig := signature{r, s}
-	check := verify(&par, &sig, y, []byte(msg))
+	par := dsa.Params{sha1.New(), p, q, g}
+	sig := dsa.Signature{r, s}
+	check := dsa.Verify(&par, &sig, y, []byte(msg))
 	fmt.Println("MC =", check)
 
 	hash := sha1.New()
